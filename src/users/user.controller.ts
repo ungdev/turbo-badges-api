@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, UseInterceptors, UploadedFile, UseGuards, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -6,6 +6,13 @@ import { UsersService } from './users.service';
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
+
+    @UseGuards(JwtAuthGuard)
+    @Get()
+    async getAllUsers() {
+        const users = await this.usersService.getAllUsers();
+        return users;
+    }
 
     @UseGuards(JwtAuthGuard)
     @Post('upload-photo')
@@ -17,4 +24,6 @@ export class UsersController {
         const userId = req.user.id;
         return this.usersService.updateUserPhoto(userId, file.filename);
     }
+
+
 }

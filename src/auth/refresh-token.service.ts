@@ -1,13 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { User } from 'src/users/user.model';
+import type { Role } from 'src/users/user.model';
+import { StoredRefresh, RedisClient } from 'src/auth/refresh-token.model';
 
-type RedisClient = any;
-
-interface StoredRefresh {
-    user: User;
-    exp: number;
-}
 
 @Injectable()
 export class RefreshTokenService implements OnModuleDestroy {
@@ -38,11 +33,11 @@ export class RefreshTokenService implements OnModuleDestroy {
         return Math.max(1, days) * 24 * 3600;
     }
 
-    async issue(user: User): Promise<{ token: string; exp: number }> {
+    async issue(userId: string, role: Role): Promise<{ token: string; exp: number }> {
         const token = randomUUID();
         const now = Math.floor(Date.now() / 1000);
         const exp = now + this.ttlSeconds();
-        const data: StoredRefresh = { user, exp };
+        const data: StoredRefresh = { userId, role, exp };
         if (this.redis) {
             await this.redis.setex(this.key(token), exp - now, JSON.stringify(data));
         } else {
@@ -52,12 +47,12 @@ export class RefreshTokenService implements OnModuleDestroy {
         return { token, exp };
     }
 
-    async rotate(oldToken: string): Promise<{ token: string; exp: number; user: User } | null> {
+    async rotate(oldToken: string): Promise<{ token: string; exp: number; userId: string; role: Role } | null> {
         const stored = await this.get(oldToken);
         if (!stored) return null;
         await this.revoke(oldToken);
-        const { token, exp } = await this.issue(stored.user);
-        return { token, exp, user: stored.user };
+        const { token, exp } = await this.issue(stored.userId, stored.role);
+        return { token, exp, userId: stored.userId, role: stored.role };
     }
 
     async revoke(token: string): Promise<void> {

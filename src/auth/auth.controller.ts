@@ -18,18 +18,51 @@ export class AuthController {
         private fileUploadService: FileUploadService,
     ) { }
 
+    @Post('local/login')
+    async localLogin(@Body() body: { email: string; password: string }, @Res() res: Response) {
+        const { email, password } = body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email et mot de passe requis' });
+        }
+
+        const user = await this.authService.validateLocalUser(email, password);
+        if (!user) {
+            return res.status(401).json({ message: 'Identifiants invalides' });
+        }
+
+        const { token, exp } = await this.refreshService.issue(user.id, user.role);
+        const { access_token } = await this.authService.login(user);
+        const maxAgeMs = (exp - Math.floor(Date.now() / 1000)) * 1000;
+
+        res.cookie('rt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV !== 'development',
+            sameSite: 'lax',
+            path: '/auth',
+            maxAge: maxAgeMs,
+        });
+
+        return res.json({ access_token });
+    }
+
     @Get('oauth')
     @UseGuards(AuthGuard('authentik'))
     async oauthAuth(@Req() req, @Res() res: Response) {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-        res.redirect(`${frontendUrl}/auth/oauth`);
+        res.redirect(`${frontendUrl}/`);
+    }
+
+    @Get('oauth/signup')
+    async oauthSignup(@Req() req, @Res() res: Response) {
+        const signupUrl = this.configService.get<string>('AUTHENTIK_SIGNUP_URL');
+        res.redirect(`${signupUrl}`);
     }
 
     @Get('oauth/callback')
     @UseGuards(AuthGuard('authentik'))
     async oauthAuthCallback(@Req() req, @Res() res: Response) {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-        const { token, exp } = await this.refreshService.issue(req.user);
+        const { token, exp } = await this.refreshService.issue(req.user.id, req.user.role);
         const maxAgeMs = (exp - Math.floor(Date.now() / 1000)) * 1000;
         res.cookie('rt', token, {
             httpOnly: true,
@@ -43,8 +76,8 @@ export class AuthController {
 
     @Get('profile')
     @UseGuards(AuthGuard('jwt'))
-    getProfile(@Req() req) {
-        return req.user;
+    async getProfile(@Req() req) {
+        return await this.usersService.getUserById(req.user.id);
     }
 
     @Put('profile/photo')
@@ -69,32 +102,32 @@ export class AuthController {
         const updatedUser = await this.usersService.updateUserPhoto(userId, filename);
 
         return {
-            user: req.user,
+            user: updatedUser,
         };
     }
 
-    // @Put('profile')
-    // @UseGuards(AuthGuard('jwt'))
-    // async updateProfile(@Req() req, @Body() body: any, @Res() res: Response) {
-    //     console.log('UPDATE PROFILE');
-    //     try {
-    //         const userId = req.user.id;
-    //         const updateData: any = {};
+    @Put('profile')
+    @UseGuards(AuthGuard('jwt'))
+    async updateProfile(@Req() req, @Body() body: any, @Res() res: Response) {
+        try {
 
-    //         if (body.firstName) {
-    //             updateData.firstName = body.firstName;
-    //         }
-    //         if (body.lastName) {
-    //             updateData.lastName = body.lastName;
-    //         }
+            const userId = req.user.id;
+            const updateData: JWTPayloadWithProfileUpdateBody = req.user;
 
-    //         const updatedUserProfile = await this.usersService.createOrUpdateUser(userId, updateData);
+            if (body.firstName) {
+                updateData.firstName = body.firstName;
+            }
+            if (body.lastName) {
+                updateData.lastName = body.lastName;
+            }
 
-    //         return res.json({ user: updatedUserProfile });
-    //     } catch (error) {
-    //         return res.status(400).json({ message: error.message });
-    //     }
-    // }
+            const updatedUserProfile = await this.usersService.createOrUpdateUser(userId, updateData);
+
+            return res.json({ user: updatedUserProfile });
+        } catch (error) {
+            return res.status(400).json({ message: error.message });
+        }
+    }
 
     @Post('refresh')
     async refresh(@Req() req, @Res() res: Response) {
@@ -106,8 +139,8 @@ export class AuthController {
         if (!rotated) {
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
-        const { user, token: newRt, exp } = rotated;
-        const { access_token } = await this.authService.login(user);
+        const { userId, role, token: newRt, exp } = rotated;
+        const { access_token } = await this.authService.login({ id: userId, role });
         const maxAgeMs = (exp - Math.floor(Date.now() / 1000)) * 1000;
         res.cookie('rt', newRt, {
             httpOnly: true,

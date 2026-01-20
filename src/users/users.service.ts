@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Role, User, UserProfile } from './user.model';
+import { Role, User, UserProfile, UserProfileUpdateData, UserProfileUpdateDataInputs, UserProfileWithPassword } from './user.model';
 
 @Injectable()
 export class UsersService {
@@ -24,16 +24,17 @@ export class UsersService {
         return { id: role.id, name: role.name };
     }
 
-    async createOrUpdateUser(id: string, data: UserProfile): Promise<UserProfile> {
+    async createOrUpdateUser(id: string, data: UserProfileUpdateDataInputs): Promise<UserProfile> {
+
+        const updateData: UserProfileUpdateData = { id };
+        if (data.email) updateData.email = data.email;
+        if (data.firstName) updateData.firstName = data.firstName;
+        if (data.lastName) updateData.lastName = data.lastName;
+        if (data.role && data.role.id) updateData['roleId'] = data.role.id;
 
         const user = await this.prisma.user.upsert({
             where: { id },
-            update: {
-                email: data.email,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                roleId: data.role.id
-            },
+            update: updateData,
             create: {
                 id,
                 email: data.email || '',
@@ -41,7 +42,9 @@ export class UsersService {
                 lastName: data.lastName || '',
                 roleId: data.role.id,
             },
-            include: { role: true },
+            include: {
+                role: true
+            },
         });
 
         return this.mapUserToUserProfile(user);
@@ -50,6 +53,7 @@ export class UsersService {
     async getUserById(id: string): Promise<UserProfile | undefined> {
         const user = await this.prisma.user.findUnique({
             where: { id },
+            include: { role: true },
         });
         return user ? this.mapUserToUserProfile(user) : undefined;
     }
@@ -57,9 +61,20 @@ export class UsersService {
     async getUserByEmail(email: string): Promise<UserProfile | undefined> {
         const user = await this.prisma.user.findUnique({
             where: { email },
-            include: { role: true },
+            include: { role: true }
         });
         return user ? this.mapUserToUserProfile(user) : undefined;
+    }
+
+    async getUserWithPasswordByEmail(email: string): Promise<UserProfileWithPassword | undefined> {
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+            include: { role: true },
+        });
+        return user && user.password ? {
+            ...this.mapUserToUserProfile(user),
+            password: user.password,
+        } : undefined;
     }
 
     async updateUserPhoto(id: string, photoFilename: string): Promise<UserProfile | undefined> {
@@ -82,6 +97,13 @@ export class UsersService {
             include: { role: true },
         });
         return this.mapUserToUserProfile(user);
+    }
+
+    async getAllUsers(): Promise<UserProfile[]> {
+        const users = await this.prisma.user.findMany({
+            include: { role: true },
+        });
+        return users.map(user => this.mapUserToUserProfile(user));
     }
 
     private mapUserToUserProfile(user: any): UserProfile {
