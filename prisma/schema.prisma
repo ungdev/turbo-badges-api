@@ -8,18 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  firstName     String
-  lastName      String
-  password      String?
-  photoFilename String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  roleId        String
+  id              String        @id @default(cuid())
+  email           String        @unique
+  firstName       String
+  lastName        String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  roleId          String
+  password        String?
+  pictureFilename String?
+  role            Role          @relation(fields: [roleId], references: [id])
+  accessImages    AccessImage[]
+  accesses        Access[]
+  commissions     Commission[]
+  grades          Grade[]
 
-  role Role @relation(fields: [roleId], references: [id])
-
+  @@index([roleId], map: "users_roleId_fkey")
   @@map("users")
 }
 
@@ -29,8 +33,57 @@ model Role {
   oauthGroupName String?  @unique
   weight         Int
   createdAt      DateTime @default(now())
-
-  users User[]
+  users          User[]
 
   @@map("roles")
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([createdById], map: "commissions_createdById_fkey")
+  @@map("commissions")
+}
+
+model Grade {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([createdById], map: "grades_createdById_fkey")
+  @@map("grades")
+}
+
+model Access {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  createdAt    DateTime      @default(now())
+  createdById  String?
+  createdBy    User?         @relation(fields: [createdById], references: [id])
+  accessImages AccessImage[] @relation("AccessImages")
+
+  @@index([createdById], map: "accesses_createdById_fkey")
+  @@map("accesses")
+}
+
+model AccessImage {
+  id                   String   @id @default(cuid())
+  accessId             String
+  userId               String
+  frontPictureFilename String?
+  backPictureFilename  String?
+  createdAt            DateTime @default(now())
+  access               Access   @relation("AccessImages", fields: [accessId], references: [id])
+  user                 User     @relation(fields: [userId], references: [id])
+
+  @@unique([accessId, userId], map: "access_images_accessId_userId_key")
+  @@index([accessId], map: "accessImages_accessId_fkey")
+  @@index([userId], map: "accessImages_userId_fkey")
+  @@map("access_images")
 }

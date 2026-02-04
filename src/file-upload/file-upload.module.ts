@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FileUploadService } from './file-upload.service';
+
+import { FileUploadService } from 'src/file-upload/file-upload.service';
 
 @Module({
     providers: [FileUploadService],

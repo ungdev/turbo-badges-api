@@ -22,6 +22,27 @@ async function main() {
         password: await bcrypt.hash('turbo-badges-admin', parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'))
     }
 
+    const commissions = [
+        { name: 'Bureau' },
+        { name: 'Communication' },
+        { name: 'Logistique' },
+        { name: 'Sécurité' },
+    ]
+
+    const grades = [
+        { name: 'Président' },
+        { name: 'Vice-Président' },
+        { name: 'Coordinateur' },
+        { name: 'Responsable' },
+        { name: 'Membre' },
+    ]
+
+    const accesses = [
+        { name: 'Total' },
+        { name: 'Restreint' },
+        { name: 'Scène' },
+    ]
+
     for (const role of roles) {
         await prisma.role.upsert({
             where: { name: role.name },
@@ -35,6 +56,30 @@ async function main() {
         update: { ...defaultUser },
         create: defaultUser,
     })
+
+    for (const commission of commissions) {
+        await prisma.commission.upsert({
+            where: { name: commission.name },
+            update: { ...commission },
+            create: commission,
+        })
+    }
+
+    for (const grade of grades) {
+        await prisma.grade.upsert({
+            where: { name: grade.name },
+            update: { ...grade },
+            create: grade,
+        })
+    }
+
+    for (const access of accesses) {
+        await prisma.access.upsert({
+            where: { name: access.name },
+            update: { ...access },
+            create: access,
+        })
+    }
 }
 
 main()

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-oauth2';
-import { ConfigService } from '@nestjs/config';
+
 import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
@@ -22,8 +23,8 @@ export class AuthentikStrategy extends PassportStrategy(Strategy, 'authentik') {
 
     async validate(
         accessToken: string,
-        refreshToken: string,
-        profile: any,
+        _refreshToken: string,
+        _profile: any,
         done: any,
     ): Promise<any> {
         try {
@@ -49,9 +50,9 @@ export class AuthentikStrategy extends PassportStrategy(Strategy, 'authentik') {
             const user = await this.authService.validateOAuthUser({
                 id: userInfo.sub,
                 email: userInfo.email,
-                firstName: userNames[0] || '',
-                lastName: userNames.slice(1).join(' ') || '',
-                groups: userInfo.groups || [],
+                firstName: userNames[0] ?? '',
+                lastName: userNames.slice(1).join(' ') ?? '',
+                groups: userInfo.groups ?? [],
                 role: undefined,
             });
             done(null, user);

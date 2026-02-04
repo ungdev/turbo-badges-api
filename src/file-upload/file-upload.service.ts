@@ -5,39 +5,55 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class FileUploadService {
-    private readonly uploadsDir = path.join(process.cwd(), 'uploads', 'photos');
+    private readonly uploadsBase = path.join(process.cwd(), 'uploads');
 
     constructor() {
-        this.ensureUploadsDir();
-    }
-
-    private ensureUploadsDir(): void {
-        if (!fs.existsSync(this.uploadsDir)) {
-            fs.mkdirSync(this.uploadsDir, { recursive: true });
+        if (!fs.existsSync(this.uploadsBase)) {
+            fs.mkdirSync(this.uploadsBase, { recursive: true });
         }
     }
 
-    saveFile(file: Express.Multer.File, userId: string): { filename: string; url: string } {
+    private getUploadsDir(subfolder: string): string {
+        return path.join(this.uploadsBase, subfolder);
+    }
+
+    private ensureDir(subfolder: string): void {
+        const dir = this.getUploadsDir(subfolder);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    }
+    saveToFolder(subfolder: string, file: Express.Multer.File, ownerId?: string): { filename: string; url: string } {
         if (!file) {
             throw new Error('No file provided');
         }
 
         const ext = path.extname(file.originalname);
-        const filename = `${userId}-${uuidv4()}${ext}`;
-        const filepath = path.join(this.uploadsDir, filename);
+        const filename = `${ownerId ?? 'file'}-${uuidv4()}${ext}`;
 
+        this.ensureDir(subfolder);
+        const dir = this.getUploadsDir(subfolder);
+        const filepath = path.join(dir, filename);
         fs.writeFileSync(filepath, file.buffer);
 
         return {
             filename,
-            url: `/uploads/photos/${filename}`,
+            url: `/uploads/${subfolder}/${filename}`,
         };
     }
 
-    deleteFile(filename: string): boolean {
+    saveBadgePicture(file: Express.Multer.File, userId: string): { filename: string; url: string } {
+        return this.saveToFolder('badges', file, userId);
+    }
+
+    saveUserPicture(file: Express.Multer.File, userId: string): { filename: string; url: string } {
+        return this.saveToFolder('pictures', file, userId);
+    }
+
+    deleteFile(filename: string, subfolder = 'pictures'): boolean {
         if (!filename) return false;
 
-        const filepath = path.join(this.uploadsDir, filename);
+        const filepath = path.join(this.getUploadsDir(subfolder), filename);
         if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath);
             return true;
@@ -45,7 +61,7 @@ export class FileUploadService {
         return false;
     }
 
-    getFilePath(filename: string): string {
-        return path.join(this.uploadsDir, filename);
+    getFilePath(filename: string, subfolder = 'pictures'): string {
+        return path.join(this.getUploadsDir(subfolder), filename);
     }
 }

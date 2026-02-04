@@ -1,14 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { Role, User, UserProfile, UserProfileUpdateData, UserProfileUpdateDataInputs, UserProfileWithPassword } from './user.model';
+
+import { PrismaService } from 'prisma/prisma.service';
+import { FileUploadService } from 'src/file-upload/file-upload.service';
+import { Role, UserProfile, UserProfileUpdateData, UserProfileUpdateDataInputs, UserProfileWithPassword } from 'src/users/user.model';
 
 @Injectable()
 export class UsersService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private fileUploadService: FileUploadService
+    ) { }
 
     async getRoleFromGroups(groups?: string[]): Promise<Role> {
         const roles = await this.prisma.role.findMany({
-            where: { oauthGroupName: { in: groups || [] } }
+            where: { oauthGroupName: { in: groups ?? [] } }
         });
         if (!roles || roles.length === 0) {
             const role = await this.prisma.role.findUnique({ where: { name: 'user' } });
@@ -24,23 +29,27 @@ export class UsersService {
         return { id: role.id, name: role.name };
     }
 
-    async createOrUpdateUser(id: string, data: UserProfileUpdateDataInputs): Promise<UserProfile> {
+    async createOrUpdateUser(
+        id: string,
+        { email, firstName, lastName, role }: UserProfileUpdateDataInputs,
+    ): Promise<UserProfile> {
 
-        const updateData: UserProfileUpdateData = { id };
-        if (data.email) updateData.email = data.email;
-        if (data.firstName) updateData.firstName = data.firstName;
-        if (data.lastName) updateData.lastName = data.lastName;
-        if (data.role && data.role.id) updateData['roleId'] = data.role.id;
+        const updateData: UserProfileUpdateData = {
+            id,
+            ...(email && { email }),
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+        };
 
         const user = await this.prisma.user.upsert({
             where: { id },
             update: updateData,
             create: {
                 id,
-                email: data.email || '',
-                firstName: data.firstName || '',
-                lastName: data.lastName || '',
-                roleId: data.role.id,
+                email: email ?? '',
+                firstName: firstName ?? '',
+                lastName: lastName ?? '',
+                roleId: role.id,
             },
             include: {
                 role: true
@@ -77,33 +86,45 @@ export class UsersService {
         } : undefined;
     }
 
-    async updateUserPhoto(id: string, photoFilename: string): Promise<UserProfile | undefined> {
-        const user = await this.prisma.user.update({
-            where: { id },
-            data: {
-                photoFilename,
-            },
-            include: { role: true },
-        });
-        return this.mapUserToUserProfile(user);
-    }
-
-    async deleteUserPhoto(id: string): Promise<UserProfile | undefined> {
-        const user = await this.prisma.user.update({
-            where: { id },
-            data: {
-                photoFilename: null,
-            },
-            include: { role: true },
-        });
-        return this.mapUserToUserProfile(user);
-    }
-
     async getAllUsers(): Promise<UserProfile[]> {
         const users = await this.prisma.user.findMany({
             include: { role: true },
         });
         return users.map(user => this.mapUserToUserProfile(user));
+    }
+
+    async updateUserProfilePicture(userId: string, filename: string): Promise<UserProfile> {
+        const user = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                pictureFilename: filename,
+            },
+            include: { role: true },
+        });
+        return this.mapUserToUserProfile(user);
+    }
+
+    async deleteUserProfilePicture(id: string): Promise<UserProfile | undefined> {
+        const userProfilePictureFilename = await this.prisma.user.findUnique({
+            where: { id },
+            select: { pictureFilename: true },
+        });
+
+        if (!userProfilePictureFilename || !userProfilePictureFilename.pictureFilename) {
+            return undefined;
+        }
+
+        await this.fileUploadService.deleteFile(userProfilePictureFilename.pictureFilename);
+
+        const user = await this.prisma.user.update({
+            where: { id },
+            data: {
+                pictureFilename: null,
+            },
+            include: { role: true },
+        });
+
+        return this.mapUserToUserProfile(user);
     }
 
     private mapUserToUserProfile(user: any): UserProfile {
@@ -113,6 +134,7 @@ export class UsersService {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            ...(user.pictureFilename && { pictureFilename: user.pictureFilename }),
             role: {
                 id: user.role.id,
                 name: user.role.name

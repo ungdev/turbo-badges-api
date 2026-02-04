@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+
+import { RedisClient, StoredRefresh } from 'src/auth/refresh-token.model';
 import type { Role } from 'src/users/user.model';
-import { StoredRefresh, RedisClient } from 'src/auth/refresh-token.model';
 
 
 @Injectable()
@@ -29,7 +30,7 @@ export class RefreshTokenService implements OnModuleDestroy {
     }
 
     private ttlSeconds(): number {
-        const days = Number(process.env.REFRESH_TTL_DAYS || 7);
+        const days = Number(process.env.REFRESH_TTL_DAYS ?? 7);
         return Math.max(1, days) * 24 * 3600;
     }
 
@@ -68,7 +69,7 @@ export class RefreshTokenService implements OnModuleDestroy {
             const raw = await this.redis.get(this.key(token));
             return raw ? (JSON.parse(raw) as StoredRefresh) : null;
         } else {
-            const val = this.memory.get(token) || null;
+            const val = this.memory.get(token) ?? null;
             if (!val) return null;
             const now = Math.floor(Date.now() / 1000);
             if (val.exp <= now) {
@@ -81,9 +82,9 @@ export class RefreshTokenService implements OnModuleDestroy {
 
     private cleanup() {
         const now = Math.floor(Date.now() / 1000);
-        for (const [t, v] of this.memory) {
-            if (v.exp <= now) this.memory.delete(t);
-        }
+        Array.from(this.memory.entries())
+            .filter(([_, v]) => v.exp <= now)
+            .forEach(([t]) => this.memory.delete(t));
     }
 
     async onModuleDestroy() {

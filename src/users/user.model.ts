@@ -1,3 +1,9 @@
+export enum Roles {
+    ADMIN = 'admin',
+    AGENT = 'agent',
+    USER = 'user'
+}
+
 export interface Role {
     id: string;
     name: string;
@@ -8,6 +14,7 @@ export interface UserProfile {
     email: string;
     firstName: string;
     lastName: string;
+    pictureFilename?: string;
     role: Role;
 }
 
@@ -18,12 +25,6 @@ export interface UserProfileWithPassword extends UserProfile {
 export interface UserProfileWithPotentiallyOAuthGroups extends Omit<UserProfile, 'role'> {
     role?: Role;
     groups?: string[];
-}
-
-export interface User extends UserProfile {
-    photoFilename?: string;
-    createdAt: Date;
-    updatedAt: Date;
 }
 
 export interface UserProfileUpdateDataInputs {

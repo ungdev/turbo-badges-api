@@ -97,3 +97,12 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 # turbo-badges-api
+
+## Environment variables
+
+The application supports a few environment variables used for authentication timeouts:
+
+- `JWT_EXPIRES`: expiration for access tokens accepted by `jsonwebtoken`/`JwtModule` (examples: `15m`, `1h`, `7d`). Defaults to `15m`.
+- `REFRESH_TTL_DAYS`: number of days a refresh token is valid (used by the refresh token store). Defaults to `7`.
+
+Set them in your environment or in a `.env` file consumed by `@nestjs/config`.

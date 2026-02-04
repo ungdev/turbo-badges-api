@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { FileUploadModule } from './file-upload/file-upload.module';
-import { PrismaModule } from '../prisma/prisma.module';
+
+import { PrismaModule } from 'prisma/prisma.module';
+import { AppController } from 'src/app.controller';
+import { AppService } from 'src/app.service';
+import { AuthModule } from 'src/auth/auth.module';
+import { BadgesModule } from 'src/badges/badges.module';
+import { FileUploadModule } from 'src/file-upload/file-upload.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
     AuthModule,
     UsersModule,
+    BadgesModule,
     FileUploadModule,
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', '..', 'uploads'),

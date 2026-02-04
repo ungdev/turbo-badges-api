@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { AuthentikStrategy } from './strategies/authentik.strategy';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { RefreshTokenService } from './refresh-token.service';
-import { UsersModule } from '../users/users.module';
-import { FileUploadModule } from '../file-upload/file-upload.module';
+
+import { AuthController } from 'src/auth/auth.controller';
+import { AuthService } from 'src/auth/auth.service';
+import { RefreshTokenService } from 'src/auth/refresh-token.service';
+import { AuthentikStrategy } from 'src/auth/strategies/authentik.strategy';
+import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
+import { FileUploadModule } from 'src/file-upload/file-upload.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
     imports: [
@@ -16,10 +17,13 @@ import { FileUploadModule } from '../file-upload/file-upload.module';
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-                signOptions: { expiresIn: '15m' },
-            }),
+            useFactory: (configService: ConfigService) => {
+                const expiresIn = configService.get<string>('JWT_EXPIRES') ?? '15m';
+                return {
+                    secret: configService.get<string>('JWT_SECRET'),
+                    signOptions: { expiresIn: expiresIn as any },
+                };
+            },
         }),
         UsersModule,
         FileUploadModule,
