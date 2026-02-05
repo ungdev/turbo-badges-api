@@ -1,12 +1,14 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiCookieAuth } from '@nestjs/swagger';
 import { Response } from 'express';
 
 import { AuthService } from 'src/auth/auth.service';
 import { LoginDto } from 'src/auth/dto/login.dto';
 import { RefreshTokenService } from 'src/auth/refresh-token.service';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
     constructor(
@@ -27,6 +29,18 @@ export class AuthController {
 
     @Post('local/login')
     @HttpCode(200)
+    @ApiOperation({ summary: 'Local email/password authentication' })
+    @ApiBody({ type: LoginDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Login successful, returns access token and sets refresh token cookie',
+        schema: {
+            example: {
+                access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            }
+        }
+    })
+    @ApiResponse({ status: 401, description: 'Invalid credentials' })
     async localLogin(
         @Body() loginDto: LoginDto,
         @Res({ passthrough: true }) res: Response,
@@ -49,11 +63,15 @@ export class AuthController {
 
     @Get('oauth')
     @UseGuards(AuthGuard('authentik'))
+    @ApiOperation({ summary: 'Initiate OAuth authentication with Authentik' })
+    @ApiResponse({ status: 302, description: 'Redirects to Authentik login page' })
     oauthAuth() {
         // La redirection est gérée par Passport
     }
 
     @Get('oauth/signup')
+    @ApiOperation({ summary: 'Redirect to Authentik signup page' })
+    @ApiResponse({ status: 302, description: 'Redirects to Authentik signup page' })
     oauthSignup(@Res() res: Response) {
         const signupUrl = this.configService.get<string>('AUTHENTIK_SIGNUP_URL');
         res.redirect(signupUrl ?? "/");
@@ -61,6 +79,8 @@ export class AuthController {
 
     @Get('oauth/callback')
     @UseGuards(AuthGuard('authentik'))
+    @ApiOperation({ summary: 'OAuth callback endpoint (handled by Passport)' })
+    @ApiResponse({ status: 302, description: 'Redirects to frontend with authentication cookie' })
     async oauthAuthCallback(@Req() req: any, @Res() res: Response) {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL');
         const { token, exp } = await this.refreshService.issue(req.user.id, req.user.role);
@@ -71,6 +91,18 @@ export class AuthController {
 
     @Post('refresh')
     @HttpCode(200)
+    @ApiCookieAuth('rt')
+    @ApiOperation({ summary: 'Refresh access token using refresh token cookie' })
+    @ApiResponse({
+        status: 200,
+        description: 'Token refreshed successfully',
+        schema: {
+            example: {
+                access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            }
+        }
+    })
+    @ApiResponse({ status: 401, description: 'Invalid or missing refresh token' })
     async refresh(
         @Req() req: any,
         @Res({ passthrough: true }) res: Response,
@@ -92,6 +124,17 @@ export class AuthController {
 
     @Post('logout')
     @HttpCode(200)
+    @ApiCookieAuth('rt')
+    @ApiOperation({ summary: 'Logout and invalidate refresh token' })
+    @ApiResponse({
+        status: 200,
+        description: 'Logged out successfully',
+        schema: {
+            example: {
+                message: 'Logged out successfully'
+            }
+        }
+    })
     async logout(
         @Req() req: any,
         @Res({ passthrough: true }) res: Response,

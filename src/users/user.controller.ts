@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Put, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody, ApiParam } from '@nestjs/swagger';
 
 import { AdminGuard } from 'src/auth/guards/admin.guard';
 import { IMAGE_UPLOAD_OPTIONS } from 'src/file-upload/file-upload.config';
@@ -8,6 +9,8 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { UpdateProfileDto } from 'src/users/dto/update-profile.dto';
 import { UsersService } from 'src/users/users.service';
 
+@ApiTags('Users')
+@ApiBearerAuth('access-token')
 @Controller('users')
 export class UsersController {
     constructor(
@@ -17,6 +20,9 @@ export class UsersController {
 
     @UseGuards(AuthGuard('jwt'), AdminGuard)
     @Get()
+    @ApiOperation({ summary: 'Get all users (Admin only)' })
+    @ApiResponse({ status: 200, description: 'List of all users' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
     async getAllUsers() {
         const users = await this.usersService.getAllUsers();
         return users;
@@ -24,6 +30,9 @@ export class UsersController {
 
     @Get('me/profile')
     @UseGuards(AuthGuard('jwt'))
+    @ApiOperation({ summary: 'Get current user profile' })
+    @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async getProfile(@Req() req: any) {
         return await this.usersService.getUserById(req.user.id);
     }
@@ -31,6 +40,10 @@ export class UsersController {
     @Put('me/profile')
     @UseGuards(AuthGuard('jwt'))
     @HttpCode(200)
+    @ApiOperation({ summary: 'Update current user profile' })
+    @ApiBody({ type: UpdateProfileDto })
+    @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async updateProfile(@Req() req: any, @Body() updateProfileDto: UpdateProfileDto) {
         const userId = req.user.id;
         const updateData: JWTPayloadWithProfileUpdateBody = {
@@ -46,6 +59,11 @@ export class UsersController {
     @Put(':id/profile')
     @UseGuards(AuthGuard('jwt'), AdminGuard)
     @HttpCode(200)
+    @ApiOperation({ summary: 'Update user profile by ID (Admin only)' })
+    @ApiParam({ name: 'id', description: 'User ID' })
+    @ApiBody({ type: UpdateProfileDto })
+    @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
     async updateProfileForUser(@Req() req: any, @Body() updateProfileDto: UpdateProfileDto & { role?: any }) {
         const userId = req.params.id;
         const updateData: JWTPayloadWithProfileUpdateBody = {
@@ -62,6 +80,22 @@ export class UsersController {
     @Put('me/picture')
     @UseGuards(AuthGuard('jwt'))
     @UseInterceptors(FileInterceptor('picture', IMAGE_UPLOAD_OPTIONS))
+    @ApiOperation({ summary: 'Upload/update current user profile picture' })
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                picture: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Profile picture file (max 5MB, jpg/jpeg/png/webp)',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 200, description: 'Picture uploaded successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid file or no file provided' })
     async uploadProfilePicture(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
         if (!file) {
             throw new BadRequestException('No file provided');
@@ -80,6 +114,22 @@ export class UsersController {
     @Put(':id/picture')
     @UseGuards(AuthGuard('jwt'), AdminGuard)
     @UseInterceptors(FileInterceptor('picture', IMAGE_UPLOAD_OPTIONS))
+    @ApiOperation({ summary: 'Upload/update user profile picture by ID (Admin only)' })
+    @ApiParam({ name: 'id', description: 'User ID' })
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                picture: {
+                    type: 'string',
+                    format: 'binary',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 200, description: 'Picture uploaded successfully' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
     async uploadProfilePictureForUser(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
         if (!file) {
             throw new BadRequestException('No file provided');
@@ -97,6 +147,9 @@ export class UsersController {
 
     @Delete('me/picture')
     @UseGuards(AuthGuard('jwt'))
+    @ApiOperation({ summary: 'Delete current user profile picture' })
+    @ApiResponse({ status: 200, description: 'Picture deleted successfully' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async deleteProfilePicture(@Req() req: any) {
 
         const userId = req.user.id;
@@ -108,6 +161,10 @@ export class UsersController {
 
     @Delete(':id/picture')
     @UseGuards(AuthGuard('jwt'), AdminGuard)
+    @ApiOperation({ summary: 'Delete user profile picture by ID (Admin only)' })
+    @ApiParam({ name: 'id', description: 'User ID' })
+    @ApiResponse({ status: 200, description: 'Picture deleted successfully' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
     async deleteProfilePictureForUser(@Req() req: any) {
 
         const userId = req.params.id;
