@@ -8,7 +8,7 @@ export class BadgeRequestItemDto {
     })
     @IsNotEmpty({ message: 'userId est requis' })
     @IsString({ message: 'userId doit être une chaîne de caractères' })
-    userId: string;
+    userId!: string;
 
     @ApiProperty({
         description: 'Grade ID',
@@ -16,7 +16,7 @@ export class BadgeRequestItemDto {
     })
     @IsNotEmpty({ message: 'gradeId est requis' })
     @IsString({ message: 'gradeId doit être une chaîne de caractères' })
-    gradeId: string;
+    gradeId!: string;
 
     @ApiProperty({
         description: 'Commission ID',
@@ -24,7 +24,7 @@ export class BadgeRequestItemDto {
     })
     @IsNotEmpty({ message: 'commissionId est requis' })
     @IsString({ message: 'commissionId doit être une chaîne de caractères' })
-    commissionId: string;
+    commissionId!: string;
 
     @ApiProperty({
         description: 'Access ID',
@@ -32,5 +32,5 @@ export class BadgeRequestItemDto {
     })
     @IsNotEmpty({ message: 'accessId est requis' })
     @IsString({ message: 'accessId doit être une chaîne de caractères' })
-    accessId: string;
+    accessId!: string;
 }

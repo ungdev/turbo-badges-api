@@ -9,5 +9,5 @@ export class NewOptionDto {
     @IsNotEmpty({ message: 'Le nom de l\'option est requis' })
     @IsString({ message: 'Le nom doit être une chaîne de caractères' })
     @MinLength(1, { message: 'Le nom ne peut pas être vide' })
-    name: string;
+    name!: string;
 }
