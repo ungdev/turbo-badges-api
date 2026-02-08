@@ -1,0 +1,77 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: turbo-badges-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://turbobadges:${DB_PASSWORD:-turbobadges}@db:3306/turbobadges
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      - JWT_EXPIRES=${JWT_EXPIRES:-900}
+      - REFRESH_TTL_DAYS=${REFRESH_TTL_DAYS:-7}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTHENTIK_ISSUER=${AUTHENTIK_ISSUER:-http://localhost:9000/application/o/your-app/}
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID:-dummy_client_id}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET:-dummy_secret}
+      - AUTHENTIK_AUTHORIZATION_URL=${AUTHENTIK_AUTHORIZATION_URL:-http://localhost:9000/application/o/authorize/}
+      - AUTHENTIK_TOKEN_URL=${AUTHENTIK_TOKEN_URL:-http://localhost:9000/application/o/token/}
+      - AUTHENTIK_USERINFO_URL=${AUTHENTIK_USERINFO_URL:-http://localhost:9000/application/o/userinfo/}
+      - AUTHENTIK_CALLBACK_URL=${AUTHENTIK_CALLBACK_URL:-http://localhost:3000/auth/authentik/callback}
+      - AUTHENTIK_SIGNUP_URL=${AUTHENTIK_SIGNUP_URL:-http://localhost:9000/if/flow/default-source-enrollment/}
+      - PORT=3000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+    volumes:
+      - uploads:/srv/app/uploads
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - turbo-badges-net
+
+  db:
+    image: mariadb:11
+    container_name: turbo-badges-db
+    environment:
+      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${DB_NAME:-turbobadges}
+      - MARIADB_USER=${DB_USER:-turbobadges}
+      - MARIADB_PASSWORD=${DB_PASSWORD:-turbobadges}
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    networks:
+      - turbo-badges-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: turbo-badges-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - turbo-badges-net
+
+volumes:
+  db-data:
+    name: turbo-badges-db-data
+  redis-data:
+    name: turbo-badges-redis-data
+  uploads:
+    name: turbo-badges-uploads
+
+networks:
+  turbo-badges-net:
+    name: turbo-badges-network
+    driver: bridge

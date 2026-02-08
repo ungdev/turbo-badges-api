@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+
+# Development files
+*.log
+.env
+.env.local
+.env*.local
+
+# Testing
+coverage/
+test/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (will be handled by volumes)
+uploads/*
+!uploads/.gitkeep
+
+# Documentation
+README.md
+*.md
