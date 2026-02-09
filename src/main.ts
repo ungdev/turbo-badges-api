@@ -4,11 +4,22 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import * as path from 'path';
+import { execSync } from 'child_process';
 
 import { AppModule } from 'src/app.module';
 import { isSeeded, seed } from '../prisma/seed';
 
 async function bootstrap() {
+  // Run Prisma DB Push to sync database schema
+  try {
+    console.log('Syncing database schema...');
+    execSync('npx prisma db push', { stdio: 'inherit' });
+    console.log('Database schema synced!');
+  } catch (error) {
+    console.error('Error syncing database schema:', error);
+    // Continue application startup even if db push fails
+  }
+
   // Check and run seed if not already done
   try {
     const alreadySeeded = await isSeeded();

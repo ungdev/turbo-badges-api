@@ -29,14 +29,6 @@ export async function seed() {
         { name: 'ADMIN', weight: 100 }
     ]
 
-    const defaultUser = {
-        email: process.env.ADMIN_EMAIL || 'admin@turbobadges.internal',
-        firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
-        lastName: process.env.ADMIN_LAST_NAME || 'User',
-        roleId: (await prisma.role.findUnique({ where: { name: 'ADMIN' } }))!.id,
-        password: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'TurboBadgesExamplePassword', parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'))
-    }
-
     const commissions = [
         { name: 'Bureau' },
         { name: 'Communication' },
@@ -64,6 +56,14 @@ export async function seed() {
             update: { weight: role.weight },
             create: role,
         })
+    }
+
+    const defaultUser = {
+        email: process.env.ADMIN_EMAIL || 'admin@turbobadges.internal',
+        firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
+        lastName: process.env.ADMIN_LAST_NAME || 'User',
+        roleId: (await prisma.role.findUnique({ where: { name: 'ADMIN' } }))!.id,
+        password: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'TurboBadgesExamplePassword', parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'))
     }
 
     await prisma.user.upsert({
