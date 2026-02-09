@@ -104,5 +104,6 @@ The application supports a few environment variables used for authentication tim
 
 - `JWT_EXPIRES`: expiration for access tokens accepted by `jsonwebtoken`/`JwtModule` (examples: `15m`, `1h`, `7d`). Defaults to `15m`.
 - `REFRESH_TTL_DAYS`: number of days a refresh token is valid (used by the refresh token store). Defaults to `7`.
+- `API_PREFIX`: global prefix for all API routes (e.g., `/api`). When set, all routes will be prefixed with this value. The Swagger documentation will be available at `{API_PREFIX}/docs`. Leave empty for no prefix. Defaults to empty.
 
 Set them in your environment or in a `.env` file consumed by `@nestjs/config`.

@@ -38,6 +38,11 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(cookieParser());
 
+  const apiPrefix = process.env.API_PREFIX || '';
+  if (apiPrefix) {
+    app.setGlobalPrefix(apiPrefix);
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -57,7 +62,8 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, swaggerDocument);
+  const swaggerPath = apiPrefix ? `${apiPrefix}/docs` : 'docs';
+  SwaggerModule.setup(swaggerPath, app, swaggerDocument);
 
   app.useStaticAssets(path.join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',

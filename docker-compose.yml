@@ -26,6 +26,7 @@ services:
       - AUTHENTIK_SIGNUP_URL=${AUTHENTIK_SIGNUP_URL:-http://localhost:9000/if/flow/default-source-enrollment/}
       - PORT=3000
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - API_PREFIX=${API_PREFIX:-}
     volumes:
       - uploads:/srv/app/uploads
     depends_on:
