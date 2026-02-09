@@ -6,8 +6,24 @@ import cookieParser from 'cookie-parser';
 import * as path from 'path';
 
 import { AppModule } from 'src/app.module';
+import { isSeeded, seed } from '../prisma/seed';
 
 async function bootstrap() {
+  // Check and run seed if not already done
+  try {
+    const alreadySeeded = await isSeeded();
+    if (!alreadySeeded) {
+      console.log('Database not seeded, running seed...');
+      await seed();
+      console.log('Database seeding completed!');
+    } else {
+      console.log('Database already seeded, skipping...');
+    }
+  } catch (error) {
+    console.error('Error checking or running seed:', error);
+    // Continue application startup even if seed fails
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(cookieParser());
 

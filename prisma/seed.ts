@@ -6,8 +6,23 @@ const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 
 const prisma = new PrismaClient({ adapter });
 
+/**
+ * Check if the database has been seeded
+ * @returns true if the database has been seeded, false otherwise
+ */
+export async function isSeeded(): Promise<boolean> {
+    try {
+        const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+        return adminRole !== null;
+    } catch (error) {
+        return false;
+    }
+}
 
-async function main() {
+/**
+ * Seed the database with initial data
+ */
+export async function seed() {
     const roles = [
         { name: 'USER', weight: 10 },
         { name: 'AGENT', weight: 50 },
@@ -15,11 +30,11 @@ async function main() {
     ]
 
     const defaultUser = {
-        email: 'admin@badges.assos.utt.fr',
-        firstName: 'Admin',
-        lastName: 'User',
+        email: process.env.ADMIN_EMAIL || 'admin@turbobadges.internal',
+        firstName: process.env.ADMIN_FIRST_NAME || 'Admin',
+        lastName: process.env.ADMIN_LAST_NAME || 'User',
         roleId: (await prisma.role.findUnique({ where: { name: 'ADMIN' } }))!.id,
-        password: await bcrypt.hash('turbo-badges-admin', parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'))
+        password: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'TurboBadgesExamplePassword', parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'))
     }
 
     const commissions = [
@@ -82,12 +97,27 @@ async function main() {
     }
 }
 
-main()
-    .then(async () => {
-        await prisma.$disconnect()
-    })
-    .catch(async (e) => {
-        console.error(e)
-        await prisma.$disconnect()
-        process.exit(1)
-    })
+async function main() {
+    const alreadySeeded = await isSeeded();
+    if (alreadySeeded) {
+        console.log('Database is already seeded, skipping...');
+        return;
+    }
+
+    console.log('Seeding database...');
+    await seed();
+    console.log('Database seeding completed!');
+}
+
+// Only run if called directly (not imported)
+if (require.main === module) {
+    main()
+        .then(async () => {
+            await prisma.$disconnect()
+        })
+        .catch(async (e) => {
+            console.error(e)
+            await prisma.$disconnect()
+            process.exit(1)
+        })
+}
