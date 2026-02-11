@@ -18,10 +18,14 @@ import { UsersModule } from 'src/users/users.module';
             imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => {
+                const secret = configService.getOrThrow<string>('JWT_SECRET');
                 const expiresIn = configService.get<string>('JWT_EXPIRES') ?? '15m';
+
+                const expiresInValue = /^\d+$/.test(expiresIn) ? parseInt(expiresIn, 10) : expiresIn;
+
                 return {
-                    secret: configService.get<string>('JWT_SECRET'),
-                    signOptions: { expiresIn: expiresIn as any },
+                    secret,
+                    signOptions: { expiresIn: expiresInValue as any },
                 };
             },
         }),
