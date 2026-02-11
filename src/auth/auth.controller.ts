@@ -18,11 +18,14 @@ export class AuthController {
     ) { }
 
     private getCookieOptions(maxAgeMs: number) {
+        const apiPrefix = this.configService.get<string>('API_PREFIX') || '';
+        const cookiePath = apiPrefix ? `${apiPrefix}/auth` : '/auth';
+
         return {
             httpOnly: true,
             secure: process.env.NODE_ENV !== 'development',
             sameSite: 'lax' as const,
-            path: '/auth',
+            path: cookiePath,
             maxAge: maxAgeMs,
         };
     }
@@ -141,7 +144,9 @@ export class AuthController {
     ) {
         const rt = req.cookies?.rt;
         if (rt) await this.refreshService.revoke(rt);
-        res.clearCookie('rt', { path: '/auth' });
+        const apiPrefix = this.configService.get<string>('API_PREFIX') || '';
+        const cookiePath = apiPrefix ? `${apiPrefix}/auth` : '/auth';
+        res.clearCookie('rt', { path: cookiePath });
         return { message: 'Logged out successfully' };
     }
 }
