@@ -65,8 +65,9 @@ async function bootstrap() {
   const swaggerPath = apiPrefix ? `${apiPrefix}/docs` : 'docs';
   SwaggerModule.setup(swaggerPath, app, swaggerDocument);
 
+  const uploadsPrefix = apiPrefix ? `${apiPrefix}/uploads/` : '/uploads/';
   app.useStaticAssets(path.join(process.cwd(), 'uploads'), {
-    prefix: '/uploads/',
+    prefix: uploadsPrefix,
   });
 
   app.enableCors({
