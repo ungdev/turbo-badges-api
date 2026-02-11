@@ -65,36 +65,6 @@ async function bootstrap() {
   const swaggerPath = apiPrefix ? `${apiPrefix}/docs` : 'docs';
   SwaggerModule.setup(swaggerPath, app, swaggerDocument);
 
-  // Middleware pour logger toutes les requêtes d'images uploads
-  app.use((req: any, res: any, next: any) => {
-    const fullPath = req.path;
-    const uploadsPattern = apiPrefix ? `${apiPrefix}/uploads/` : '/uploads/';
-
-    if (fullPath.includes('/uploads/')) {
-      console.log('\n🖼️  === UPLOADS REQUEST ===');
-      console.log('Method:', req.method);
-      console.log('Full Path:', fullPath);
-      console.log('API Prefix:', apiPrefix || '(none)');
-      console.log('Expected Pattern:', uploadsPattern);
-      console.log('Query:', req.query);
-      console.log('Headers:', {
-        host: req.headers.host,
-        'user-agent': req.headers['user-agent'],
-        referer: req.headers.referer,
-      });
-
-      // Intercepter la réponse pour logger le statut
-      const originalSend = res.send;
-      res.send = function (data: any) {
-        console.log('Response Status:', res.statusCode);
-        console.log('Response Headers:', res.getHeaders());
-        console.log('======================\n');
-        return originalSend.call(this, data);
-      };
-    }
-    next();
-  });
-
   const uploadsPrefix = apiPrefix ? `${apiPrefix}/uploads/` : '/uploads/';
   app.useStaticAssets(path.join(process.cwd(), 'uploads'), {
     prefix: uploadsPrefix,
