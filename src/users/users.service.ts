@@ -39,6 +39,7 @@ export class UsersService {
             ...(email && { email }),
             ...(firstName && { firstName }),
             ...(lastName && { lastName }),
+            ...(role && { roleId: role.id }),
         };
 
         const user = await this.prisma.user.upsert({
